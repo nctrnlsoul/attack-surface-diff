@@ -1,0 +1,21 @@
+{
+  "name": "attack-surface-diff",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Drop a Terraform plan, watch your attack surface change. Week 1 parser core.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}
