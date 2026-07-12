@@ -32,6 +32,12 @@ body {
       opacity 350ms ease;
   }
 
+  /* Edge labels fade with their edge (tied to the same present-opacity). */
+  .react-flow__edge .react-flow__edge-text,
+  .react-flow__edge .react-flow__edge-textbg {
+    transition: opacity 350ms ease;
+  }
+
   /* New (added) attack paths pulse red as they reveal on the "after" state. */
   .asd-glow {
     animation: asd-node-glow 1.1s ease-in-out infinite alternate;

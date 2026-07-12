@@ -10,3 +10,6 @@ coverage/
 .next/
 out/
 *.tsbuildinfo
+
+# Playwright / browser-automation artifacts
+.playwright-mcp/

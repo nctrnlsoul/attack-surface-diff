@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { parsePlan } from "../src/parser/parse.js";
 import { analyzePlan } from "../src/graph/analyze.js";
 import type { PlanAnalysis } from "../src/graph/types.js";
-import { scenarioSgOpenedExposesRds } from "../src/graph/fixtures/scenarios.js";
+import {
+  scenarioFixClosesRdsPath,
+  scenarioSgOpenedExposesRds,
+} from "../src/graph/fixtures/scenarios.js";
 import { buildCombinedView } from "./combinedView.js";
 
 function analysisOf(planInput: unknown): PlanAnalysis {
@@ -57,5 +60,52 @@ describe("buildCombinedView", () => {
       expect(n.posBefore).toBeDefined();
       expect(n.posAfter).toBeDefined();
     }
+  });
+});
+
+// Scenario 3: db-sg is open to 0.0.0.0/0 in `before` (INTERNET -> db-sg -> rds is
+// an attack path) and restricted in `after`. Only the INTERNET edge leaves; the
+// db-sg -> rds membership edge persists. This pins the flags that decide the
+// green-fade eligibility that misfired in Brian's recording.
+describe("buildCombinedView (scenario 3, fix closes RDS path)", () => {
+  const view = () => buildCombinedView(analysisOf(scenarioFixClosesRdsPath()));
+  const INTERNET_EDGE = () =>
+    view().edges.find(
+      (e) => e.from === "INTERNET" && e.to === "aws_security_group.db" && e.reason === "internet_ingress",
+    );
+  const MEMBERSHIP_EDGE = () =>
+    view().edges.find(
+      (e) =>
+        e.from === "aws_security_group.db" &&
+        e.to === "aws_db_instance.prod" &&
+        e.reason === "sg_membership",
+    );
+
+  it("marks the INTERNET -> db-sg internet_ingress edge as before-only", () => {
+    const edge = INTERNET_EDGE();
+    expect(edge).toBeDefined();
+    expect(edge?.inBefore).toBe(true);
+    expect(edge?.inAfter).toBe(false);
+  });
+
+  it("puts the INTERNET -> db-sg edge in the removed set (it is eligible to fade green)", () => {
+    expect(view().removed.edgeKeys.has("INTERNET->aws_security_group.db")).toBe(true);
+  });
+
+  it("keeps the db-sg -> rds membership edge present in BOTH states", () => {
+    const edge = MEMBERSHIP_EDGE();
+    expect(edge).toBeDefined();
+    expect(edge?.inBefore).toBe(true);
+    expect(edge?.inAfter).toBe(true);
+  });
+
+  it("db-sg -> rds is on the removed path but stays present in after (must NOT fade green)", () => {
+    const v = view();
+    // It IS on the removed attack path...
+    expect(v.removed.edgeKeys.has("aws_security_group.db->aws_db_instance.prod")).toBe(true);
+    // ...but inAfter=true means present in the after view, so it is not "leaving"
+    // and green fade must be suppressed. The visual rule is pinned in
+    // diffVisual.test.ts (fadeGreen requires !present).
+    expect(MEMBERSHIP_EDGE()?.inAfter).toBe(true);
   });
 });

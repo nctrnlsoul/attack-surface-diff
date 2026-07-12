@@ -16,6 +16,7 @@ import type { ResourceSet } from "../src/parser";
 import { INTERNET } from "../src/graph";
 import type { CombinedNode, CombinedView } from "../lib/combinedView";
 import { associationEdges } from "../lib/associations";
+import { elementVisual } from "../lib/diffVisual";
 
 const DANGER = "#e0483d";
 const SAFE = "#2fa36b";
@@ -72,23 +73,23 @@ export default function GraphView({
   const nodes = useMemo<Node[]>(
     () =>
       combined.nodes.map((n) => {
-        const present = side === "before" ? n.inBefore : n.inAfter;
-        const position = side === "before" ? n.posBefore : n.posAfter;
-        const onPath = activePaths.nodeIds.has(n.id);
-        const isAdded = combined.added.nodeIds.has(n.id);
-        const isRemoved = combined.removed.nodeIds.has(n.id);
-        // Green only what actually leaves in "after"; an element on a removed
-        // path may still exist (e.g. db-sg->rds persists after the internet edge
-        // closes) and must not render solid green.
-        const fadingGreen = isRemoved && side === "after" && !present;
-        const glow = isAdded && side === "after" && present;
+        const v = elementVisual(
+          {
+            inBefore: n.inBefore,
+            inAfter: n.inAfter,
+            onActivePath: activePaths.nodeIds.has(n.id),
+            onAddedPath: combined.added.nodeIds.has(n.id),
+            onRemovedPath: combined.removed.nodeIds.has(n.id),
+          },
+          side,
+        );
         return {
           id: n.id,
-          position,
+          position: side === "before" ? n.posBefore : n.posAfter,
           data: { label: n.id === INTERNET ? "INTERNET" : n.label },
           draggable: false,
-          className: glow ? "asd-node asd-glow" : "asd-node",
-          style: { ...nodeStyle(n, onPath, fadingGreen), opacity: present ? 1 : 0 },
+          className: v.glow ? "asd-node asd-glow" : "asd-node",
+          style: { ...nodeStyle(n, v.onPath, v.fadeGreen), opacity: v.present ? 1 : 0 },
         };
       }),
     [combined, side, activePaths],
@@ -96,24 +97,34 @@ export default function GraphView({
 
   const edges = useMemo<Edge[]>(() => {
     const diffEdges: Edge[] = combined.edges.map((e) => {
-      const present = side === "before" ? e.inBefore : e.inAfter;
-      const onPath = activePaths.edgeKeys.has(e.key);
-      const isAdded = combined.added.edgeKeys.has(e.key);
-      const isRemoved = combined.removed.edgeKeys.has(e.key);
-      const fadingGreen = isRemoved && side === "after";
-      const color = fadingGreen ? SAFE : onPath ? DANGER : NEUTRAL_EDGE;
+      const v = elementVisual(
+        {
+          inBefore: e.inBefore,
+          inAfter: e.inAfter,
+          onActivePath: activePaths.edgeKeys.has(e.key),
+          onAddedPath: combined.added.edgeKeys.has(e.key),
+          onRemovedPath: combined.removed.edgeKeys.has(e.key),
+        },
+        side,
+      );
+      const color = v.fadeGreen ? SAFE : v.onPath ? DANGER : NEUTRAL_EDGE;
       const label = shortLabel(e.detail);
+      // Tie the label's opacity to the edge's so it never floats orphaned when
+      // the edge is invisible (the "tcp 5432" ghost Brian saw on the closed edge).
+      const opacity = v.present ? 1 : 0;
       return {
         id: e.id,
         source: e.from,
         target: e.to,
-        className: isAdded && side === "after" && present ? "asd-edge asd-edge-glow" : "asd-edge",
+        className: v.glow ? "asd-edge asd-edge-glow" : "asd-edge",
         ...(label ? { label } : {}),
-        labelBgStyle: { fill: "#ffffff", fillOpacity: 0.85 },
+        // Use `opacity` (not fillOpacity) so the chip fades via the same CSS
+        // opacity transition as the text, in lockstep with the edge.
+        labelBgStyle: { fill: "#ffffff", opacity: v.present ? 0.85 : 0 },
         labelBgPadding: [4, 2] as [number, number],
-        labelStyle: { fontSize: 10, fill: "#64748b" },
+        labelStyle: { fontSize: 10, fill: "#64748b", opacity },
         markerEnd: { type: MarkerType.ArrowClosed, color },
-        style: { stroke: color, strokeWidth: onPath ? 2.5 : 1.5, opacity: present ? 1 : 0 },
+        style: { stroke: color, strokeWidth: v.onPath ? 2.5 : 1.5, opacity },
       };
     });
 
