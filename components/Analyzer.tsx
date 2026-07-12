@@ -8,6 +8,7 @@ import type { ParseError, ParsedPlan } from "../src/parser";
 import { analyzePlan } from "../src/graph";
 import type { PlanAnalysis } from "../src/graph";
 import { buildCombinedView } from "../lib/combinedView";
+import { undeterminedBuckets } from "../lib/undeterminedBuckets";
 import { type Demo } from "../lib/demos";
 import ScenarioPicker from "./ScenarioPicker";
 import FileDrop from "./FileDrop";
@@ -21,7 +22,7 @@ import NarrativePanel from "./NarrativePanel";
 const GraphView = dynamic(() => import("./GraphView"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[560px] items-center justify-center rounded-lg border border-slate-200 bg-white text-sm text-slate-400">
+    <div className="flex h-[420px] items-center justify-center rounded-lg border border-slate-200 bg-white text-sm text-slate-400 sm:h-[560px]">
       Loading graph…
     </div>
   ),
@@ -58,22 +59,16 @@ export default function Analyzer() {
   const combined = useMemo(() => (analysis ? buildCombinedView(analysis) : null), [analysis]);
   const currentSet = plan ? plan[side] : null;
   const currentUnmodeled = currentSet ? currentSet.unmodeled : [];
+  const currentUndetermined = currentSet ? undeterminedBuckets(currentSet) : [];
   // Remount (and re-fit) on a new source, but not on a before/after toggle, so
   // toggling animates the diff instead of re-framing the canvas.
   const sourceKey = activeId ?? sourceLabel ?? "none";
+  const noChanges = analysis
+    ? analysis.diff.added.length + analysis.diff.removed.length === 0
+    : false;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Attack-Surface <span className="text-brand">Diff</span>
-        </h1>
-        <p className="text-sm text-slate-500">
-          Drop a Terraform plan and see how the declared reachability changes. It reflects what your
-          infrastructure-as-code declares, not a live environment.
-        </p>
-      </header>
-
       <section className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -100,9 +95,14 @@ export default function Analyzer() {
             </div>
             <DiffSummary diff={analysis.diff} />
           </div>
+          {noChanges && (
+            <p className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500">
+              No attack-path changes between the before and after states of this plan.
+            </p>
+          )}
           <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
             <GraphView key={sourceKey} combined={combined} side={side} resourceSet={currentSet} />
-            <NotAnalyzedPanel unmodeled={currentUnmodeled} />
+            <NotAnalyzedPanel unmodeled={currentUnmodeled} undetermined={currentUndetermined} />
           </div>
           <p className="text-xs text-slate-400">
             Red edges and nodes lie on an attack path (INTERNET to a data store) in the{" "}
@@ -113,9 +113,15 @@ export default function Analyzer() {
       )}
 
       {!analysis && !error && (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-slate-400">
-          Pick a demo scenario or drop a plan to see its attack surface.
-        </p>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+          <p className="text-sm text-slate-500">
+            Pick a demo scenario above, or drop your own{" "}
+            <span className="font-mono">terraform show -json</span> output.
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Everything is parsed in your browser — your plan never leaves your machine.
+          </p>
+        </div>
       )}
     </div>
   );

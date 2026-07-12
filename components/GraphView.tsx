@@ -146,7 +146,7 @@ export default function GraphView({
   });
 
   return (
-    <div className="h-[560px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="h-[420px] overflow-hidden rounded-lg border border-slate-200 bg-white sm:h-[560px]">
       <ReactFlow nodes={nodes} edges={edges} fitView minZoom={0.2} nodesDraggable={false}>
         <Background color="#e2e8f0" />
         <Controls showInteractive={false} />

@@ -111,6 +111,10 @@ const assetsPab = (blocked: boolean) =>
     restrict_public_buckets: blocked,
   });
 
+// A bucket with NO public-access block: its internet exposure can't be judged
+// from the plan, so it surfaces under "public access not determined".
+const logsBucket = () => res("aws_s3_bucket", "logs", { bucket: "app-logs", id: "app-logs" });
+
 export interface Demo {
   id: string;
   label: string;
@@ -132,7 +136,10 @@ export const DEMOS: Demo[] = [
     id: "s3-public",
     label: "S3 bucket made public",
     description: "A bucket's public-access block is relaxed, exposing it to the internet.",
-    plan: plan([assetsBucket(), assetsPab(true)], [assetsBucket(), assetsPab(false)]),
+    plan: plan(
+      [assetsBucket(), assetsPab(true), logsBucket()],
+      [assetsBucket(), assetsPab(false), logsBucket()],
+    ),
   },
   {
     id: "fix-closes",
