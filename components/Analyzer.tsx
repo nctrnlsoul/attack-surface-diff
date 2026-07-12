@@ -15,6 +15,7 @@ import BeforeAfterToggle from "./BeforeAfterToggle";
 import NotAnalyzedPanel from "./NotAnalyzedPanel";
 import ParseErrorBanner from "./ParseErrorBanner";
 import DiffSummary from "./DiffSummary";
+import NarrativePanel from "./NarrativePanel";
 
 // React Flow needs the browser; render it client-only.
 const GraphView = dynamic(() => import("./GraphView"), {
@@ -107,6 +108,7 @@ export default function Analyzer() {
             Red edges and nodes lie on an attack path (INTERNET to a data store) in the{" "}
             <span className="font-medium">{side}</span> state. Toggle to compare.
           </p>
+          <NarrativePanel analysis={analysis} />
         </section>
       )}
 
