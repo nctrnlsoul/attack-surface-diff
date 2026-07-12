@@ -49,6 +49,11 @@ function depthFromInternet(graph: AttackGraph): Map<string, number> {
   return depth;
 }
 
+/** Node ids reachable from INTERNET over directed edges (the non-isolated set). */
+export function reachableNodeIds(graph: AttackGraph): Set<string> {
+  return new Set(depthFromInternet(graph).keys());
+}
+
 export function layoutGraph(graph: AttackGraph): GraphLayout {
   const depth = depthFromInternet(graph);
   const layout: GraphLayout = new Map();

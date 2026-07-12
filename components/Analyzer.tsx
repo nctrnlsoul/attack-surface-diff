@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 
 import { parsePlan, parsePlanJson } from "../src/parser";
 import type { ParseError, ParsedPlan } from "../src/parser";
 import { analyzePlan } from "../src/graph";
 import type { PlanAnalysis } from "../src/graph";
+import { buildCombinedView } from "../lib/combinedView";
 import { type Demo } from "../lib/demos";
 import ScenarioPicker from "./ScenarioPicker";
 import FileDrop from "./FileDrop";
@@ -53,8 +54,12 @@ export default function Analyzer() {
   const loadDemo = (demo: Demo) => applyResult(parsePlan(demo.plan), demo.label, demo.id);
   const loadText = (text: string, label: string) => applyResult(parsePlanJson(text), label, null);
 
-  const currentSide = analysis ? analysis[side] : null;
-  const currentUnmodeled = plan ? plan[side].unmodeled : [];
+  const combined = useMemo(() => (analysis ? buildCombinedView(analysis) : null), [analysis]);
+  const currentSet = plan ? plan[side] : null;
+  const currentUnmodeled = currentSet ? currentSet.unmodeled : [];
+  // Remount (and re-fit) on a new source, but not on a before/after toggle, so
+  // toggling animates the diff instead of re-framing the canvas.
+  const sourceKey = activeId ?? sourceLabel ?? "none";
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
@@ -85,7 +90,7 @@ export default function Analyzer() {
 
       {error && <ParseErrorBanner error={error} />}
 
-      {analysis && currentSide && !error && (
+      {analysis && combined && currentSet && !error && (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -95,7 +100,7 @@ export default function Analyzer() {
             <DiffSummary diff={analysis.diff} />
           </div>
           <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-            <GraphView graph={currentSide.graph} paths={currentSide.paths} />
+            <GraphView key={sourceKey} combined={combined} side={side} resourceSet={currentSet} />
             <NotAnalyzedPanel unmodeled={currentUnmodeled} />
           </div>
           <p className="text-xs text-slate-400">

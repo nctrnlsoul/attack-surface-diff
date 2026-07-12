@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AttackGraph, GraphNode } from "../src/graph/types.js";
 import { INTERNET } from "../src/graph/types.js";
-import { COLUMN_GAP, ISOLATED_LANE_GAP, ROW_GAP, layoutGraph } from "./layout.js";
+import { COLUMN_GAP, ISOLATED_LANE_GAP, ROW_GAP, layoutGraph, reachableNodeIds } from "./layout.js";
 
 function node(id: string, isDataStore = false): GraphNode {
   return { id, kind: "vpc", label: id, isDataStore };
@@ -64,5 +64,20 @@ describe("layoutGraph", () => {
     for (const n of graph.nodes) {
       expect(layout.has(n.id)).toBe(true);
     }
+  });
+});
+
+describe("reachableNodeIds", () => {
+  it("returns INTERNET plus everything reachable, excluding isolated nodes", () => {
+    const graph: AttackGraph = {
+      nodes: [internetNode, node("sg"), node("db", true), node("vpc")],
+      edges: [
+        { from: INTERNET, to: "sg", reason: "internet_ingress", detail: null },
+        { from: "sg", to: "db", reason: "sg_membership", detail: null },
+      ],
+    };
+    const reachable = reachableNodeIds(graph);
+    expect([...reachable].sort()).toEqual([INTERNET, "db", "sg"]);
+    expect(reachable.has("vpc")).toBe(false);
   });
 });

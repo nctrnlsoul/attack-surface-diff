@@ -15,8 +15,10 @@ export default function NotAnalyzedPanel({ unmodeled }: { unmodeled: UnmodeledRe
       ) : (
         <ul className="mt-3 space-y-1">
           {unmodeled.map((r) => (
-            <li key={r.address} className="flex justify-between gap-3 text-sm">
-              <span className="truncate font-mono text-slate-700">{r.address}</span>
+            <li key={r.address} className="flex items-start justify-between gap-3 text-sm">
+              <span title={r.address} className="min-w-0 break-all font-mono text-slate-700">
+                {r.address}
+              </span>
               <span className="shrink-0 font-mono text-xs text-slate-400">{r.type}</span>
             </li>
           ))}
