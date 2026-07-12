@@ -5,6 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Attack-Surface Diff",
   description: "Drop a Terraform plan, watch your attack surface change.",
+  icons: { icon: "/northschema-mark.png" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
