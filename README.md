@@ -12,10 +12,12 @@ a plain-English risk narrative per path.
 
 ## Status
 
-Week 1, Days 1-2: the parser core. Turns `terraform show -json` output into a
-typed resource model for the MVP AWS resource set. Pure functions, no framework
-coupling, fail-closed on bad input. Graph builder, visualization, and AI
-narrative come in later slices.
+Week 1 engine complete: parser + graph, 62 tests. `src/parser` turns
+`terraform show -json` into a typed, fail-closed resource model; `src/graph`
+builds the declared-reachability attack graph, runs BFS from a synthetic
+INTERNET node to data stores, and diffs the before/after path sets. Pure
+functions, no framework coupling. Visualization and the AI narrative come in
+later slices.
 
 ## The parser core
 
