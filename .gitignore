@@ -5,3 +5,8 @@ dist/
 *.log
 .DS_Store
 coverage/
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
